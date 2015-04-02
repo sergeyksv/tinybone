@@ -33,7 +33,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         });
     };
 
-    dust.config && (dust.config.whitespace = true);
+    debug && dust.config && (dust.config.whitespace = true);
 
     // A module that can be mixed in to *any object* in order to provide it with
     // custom events. You may bind with `on` or remove with `off` callback
