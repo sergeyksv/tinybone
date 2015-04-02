@@ -1,8 +1,10 @@
-define(['safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(safe, _, dust, md5) {
+define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(module, safe, _, dust, md5) {
     var array = [];
     var push = array.push;
     var slice = array.slice;
     var splice = array.splice;
+    var config = (module.config && module.config()) || {};
+    var debug = config.debug || false;
 
     // Make sure dust.helpers is an object before adding a new helper.
     if (!dust.helpers)
@@ -436,7 +438,20 @@ define(['safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(sa
         // redefined
         renderHtml: function(cb) {
             var self = this;
+            var tplName = "dustc!"+self.id+".dust";
             safe.parallel({
+				template: function (cb) {
+					// check for proper use
+					if (!self._rendered) {
+						if (!require.defined(tplName))
+							return cb(new Error("Primary view template should be load prior to view render"))
+						self._rendered = true;
+					}
+
+					require([tplName], function () {
+						cb(null);
+					},cb)
+				},
                 context: function(cb) {
                     self.getBaseTplCtx(safe.sure(cb, function(ctx) {
                         self.populateTplCtx(ctx, cb)
@@ -444,6 +459,9 @@ define(['safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(sa
                 }
             }, safe.sure(cb, function(res) {
                 dust.render(self.id, res.context, safe.sure(cb, function (text) {
+					// in debug mode undefine templat so it will be reloaded each time
+					if (debug)
+						require.undef(tplName);
 					this.md5 = md5(text);
 					cb(null, text);
 				}))
