@@ -5,6 +5,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
     var splice = array.splice;
     var config = (module.config && module.config()) || {};
     var debug = config.debug || false;
+    var viewTpls = {};
 
     // Make sure dust.helpers is an object before adding a new helper.
     if (!dust.helpers)
@@ -442,10 +443,10 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             safe.parallel({
 				template: function (cb) {
 					// check for proper use
-					if (!self._rendered) {
+					if (!viewTpls[tplName]) {
 						if (!require.defined(tplName))
 							return cb(new Error("Primary view template should be load prior to view render"))
-						self._rendered = true;
+						viewTpls[tplName] = true;
 					}
 
 					require([tplName], function () {

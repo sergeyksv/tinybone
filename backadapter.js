@@ -1,7 +1,6 @@
 define(["module","backctx",'jquery','jquery-cookie'],function (module,ctx, $) {
 	function CustomError (message, subject) {
 		this.constructor.prototype.__proto__ = Error.prototype;
-		Error.captureStackTrace(this, this.constructor);
 		this.name = this.constructor.name;
 		this.message = message;
 		this.subject = subject;
