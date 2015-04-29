@@ -609,14 +609,14 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
     };
 
 
-    getQueryStringAsObject = function() {
+    getQueryStringAsObject = function(q) {
         var b, cv, e, k, ma, sk, v, r = {},
             d = function(v) {
                 return decodeURIComponent(v).replace(/\+/g, " ");
             }, //# d(ecode) the v(alue)
-            q = window.location.search.substring(1),
             s = /([^&;=]+)=?([^&;]*)/g //# original regex that does not allow for ; as a delimiter:   /([^&=]+)=?([^&]*)/g
         ;
+        q = q || window.location.search.substring(1),
 
         //# ma(make array) out of the v(alue)
         ma = function(v) {
@@ -837,7 +837,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             var uri = url.replace(prefix, "").replace(/\?.*$/, "");
             var match = null;
             var req = {
-                query: getQueryStringAsObject(),
+                query: getQueryStringAsObject(href.replace(/.*\?/,"")),
                 cookies: $.cookie(),
                 headers: {
                     'user-agent': navigator.userAgent
