@@ -21,11 +21,6 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 view.data = params.data ? context.get(params.data) : context.get([], true);
                 view.dataPath = params.data ? params.data : ".";
                 parent.attachSubView(view)
-                    // need to overwrite getting base context
-                    // to current one, because it is subview
-                view.getBaseTplCtx = function(cb) {
-                    safe.back(cb, null, context);
-                }
                 view.render(function(err, text) {
                     if (err) console.log(err.stack)
                     chunk.end(text);
@@ -267,6 +262,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         this.views = [];
         this.cid = _.uniqueId('v');
         this.name = this.constructor.id;
+        this.locals = {};
         options || (options = {});
         _.extend(this, _.pick(options, viewOptions));
     }
@@ -294,6 +290,12 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             // this.$el.prepend("<font style='position:absolute;left:"+this.$el.offset().left+";top:"+this.$el.offset().top+";' color='red'>"+this.name+" "+this.cid+"</font>");
         },
 
+        // preRender is function that is called before rendering and can be used
+        // to populate this.locals with anything specific to view
+        preRender: function() {
+
+        },
+
         // used internally to bind view to already available DOM model
         // based on wire data provided by server
         bindWire: function(wire, parent, ctx, cb) {
@@ -318,7 +320,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
             safe.run(function(cb) {
                 if (!ctx)
-                    self.getBaseTplCtx(cb);
+                    self.getTplCtx(cb);
                 else
                     cb(null, ctx)
             }, safe.sure(cb, function(ctx) {
@@ -355,7 +357,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                         var rview = donor.views[i];
                         if (lview.name != rview.name)
                             mutable = false;
-                    })
+                    });
                 }
             }
 
@@ -420,14 +422,19 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         // by convension this should return initial (root) dust content
         // which will be the base for actual rendeting
-        getBaseTplCtx: function(cb) {
+        getTplCtx: function(cb) {
             // by default lets delegate this to app
-            this.app.getBaseTplCtx(cb);
+            var self = this;
+            var parent = this.parent || this.app;
+            parent.getTplCtx(safe.sure(cb, function (ctx) {
+                self.populateTplCtx(ctx, cb);
+            }));
         },
 
         // used to populate base content by data that are specific for this this
         populateTplCtx: function(ctx, cb) {
-            ctx = ctx.push(_.extend(this.locals || {}, {
+            this.preRender();
+            ctx = ctx.push(_.extend({},this.locals || {}, {
                 _t_view: this
             }));
             if (this.data)
@@ -454,9 +461,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					},cb)
 				},
                 context: function(cb) {
-                    self.getBaseTplCtx(safe.sure(cb, function(ctx) {
-                        self.populateTplCtx(ctx, cb)
-                    }))
+                    self.getTplCtx(cb);
                 }
             }, safe.sure(cb, function(res) {
                 dust.render(self.id, res.context, safe.sure(cb, function (text) {
@@ -474,17 +479,32 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             var self = this;
             this.renderHtml(safe.sure(cb, function(text) {
                 cb(null, "<div id='" + self.cid + "'>" + text + "</div>");
-            }))
+            }));
         },
 
         // completely refresh current view
         refresh: function(cb) {
             var self = this;
-            this.renderHtml(safe.sure(cb, function(text) {
-                self.removeChild;
-                self.$el.html(text);
-                cb();
-            }))
+            require([this.constructor.id], function (View) {
+                // create clone of this view with same data
+                var newView = new View(new View({app:self.app}));
+                newView.data = self.data;
+                newView.locals = self.locals;
+                self.parent.attachSubView(newView);
+                newView.render(function(err, text) {
+                    if (err) {
+                        // sanitize
+                        self.parent.detachSubView(newView);
+                        return cb(err);
+                    }
+                    var $dom = $(text);
+                    self.$el.before($dom);
+                    newView.bindDom($dom, self);
+                    self.remove();
+                    cb();
+                });
+
+            },cb);
         },
 
         // Remove this view by taking the element out of the DOM, and removing any
@@ -593,14 +613,14 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
     }
 
     _.extend(Application.prototype, Events, {
-        getBaseTplCtx: function(cb) {
+        getTplCtx: function(cb) {
             var base = dust.makeBase({
                 _t_app: this,
                 _t_prefix: this.prefix
-            })
+            });
             safe.back(cb, null, base);
         }
-    })
+    });
 
     Application.extend = extend;
 
