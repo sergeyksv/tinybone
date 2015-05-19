@@ -18,18 +18,25 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                     app: context.get('_t_app')
                 });
                 var parent = context.get('_t_view');
+                // collect locals attributes (if any)
+                view.locals={};
+                _.each(params, function (v,k) {
+                    if (k.indexOf("locals-")===0) {
+                        view.locals[k.substr(7)]=v;
+                    }
+                });
                 view.data = params.data ? context.get(params.data) : context.get([], true);
                 view.dataPath = params.data ? params.data : ".";
-                parent.attachSubView(view)
+                parent.attachSubView(view);
                 view.render(function(err, text) {
-                    if (err) console.log(err.stack)
+                    if (err) console.log(err.stack);
                     chunk.end(text);
-                })
-            })
+                });
+            });
         });
     };
 
-    debug && dust.config && (dust.config.whitespace = true);
+    if (debug && dust.config) dust.config.whitespace = true;
 
     // A module that can be mixed in to *any object* in order to provide it with
     // custom events. You may bind with `on` or remove with `off` callback
@@ -306,23 +313,24 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 this.parent = null;
                 this.data = wire.data;
                 this.locals = wire.locals;
-                this.setElement($(document.body))
+                this.setElement($(document.body));
             } else {
                 // any other
                 parent.attachSubView(self);
                 var $el = parent.$el.find("#" + wire.cid);
                 if ($el.length != 1)
-                    return safe.back(cb, new Error("View '" + wire.name + "' can't find its unique element"))
+                    return safe.back(cb, new Error("View '" + wire.name + "' can't find its unique element"));
                 $el.attr('id', this.cid);
+                this.locals = wire.locals;
                 this.data = _.isString(wire.data) ? (wire.data == "." ? ctx.get([], true) : ctx.get(wire.data)) : wire.data;
-                this.setElement($el)
+                this.setElement($el);
             }
 
             safe.run(function(cb) {
                 if (!ctx)
                     self.getTplCtx(cb);
                 else
-                    cb(null, ctx)
+                    cb(null, ctx);
             }, safe.sure(cb, function(ctx) {
                 self.populateTplCtx(ctx, safe.sure(cb, function(ctx) {
                     safe.each(wire.views, function(wireView, cb) {
@@ -331,10 +339,19 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                                 app: self.app
                             });
                             view.bindWire(wireView, self, ctx, cb);
-                        }, cb)
-                    }, cb)
-                }))
-            }))
+                        }, cb);
+                    }, cb);
+                }));
+            }));
+        },
+
+        getWire: function() {
+            var wv = {md5:this.md5, name:this.constructor.id, locals:this.locals, data:this.parent?this.dataPath:this.data, cid:this.cid, views:[]};
+
+            _.each(this.views, function (view) {
+                wv.views.push(view.getWire());
+            });
+            return wv;
         },
 
         // This is magic function that links just rendered dom model
@@ -378,7 +395,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                         // that view is not need to be recreated
                         if (lview.md5 == rview.md5 && _.isEqual(lview.data, rview.data)) {
                             // move dom subnodes
-                            $rdom.replaceWith(lview.$el)
+                            $rdom.replaceWith(lview.$el);
                                 // detach lview
                             movedViews.push({
                                 view: lview,
@@ -388,14 +405,14 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                             lview.data = rview.data;
                             self.views[i] = lview;
                         } else {
-                            rview.bindDom($rdom, lview)
+                            rview.bindDom($rdom, lview);
                         }
-                    })
+                    });
                     // remove transplanted views from tree
                 _.each(movedViews, function(mv) {
                     donor.detachSubView(mv.view);
                     mv.view.parent = mv.parent;
-                })
+                });
                 self.setElement($dom, {
                     delegate: true,
                     render: true,
@@ -406,18 +423,18 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         attachSubView: function(view) {
             if (view.parent)
-                throw new Error("View already has parent")
+                throw new Error("View already has parent");
             view.parent = this;
             this.views.push(view);
         },
 
         detachSubView: function(view) {
             if (view.parent != this)
-                throw new Errror("View is attached to another parent")
+                throw new Errror("View is attached to another parent");
             view.parent = null;
             this.views = _.reject(this.views, function(v) {
                 return v.cid == view.cid;
-            })
+            });
         },
 
         // by convension this should return initial (root) dust content
@@ -433,7 +450,6 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         // used to populate base content by data that are specific for this this
         populateTplCtx: function(ctx, cb) {
-            this.preRender();
             ctx = ctx.push(_.extend({},this.locals || {}, {
                 _t_view: this
             }));
@@ -445,6 +461,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         // renders inner view content (free form), unlikely need to be
         // redefined
         renderHtml: function(cb) {
+            this.preRender();
             var self = this;
             var tplName = "dustc!"+self.id+".dust";
             safe.parallel({
@@ -452,13 +469,13 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					// check for proper use
 					if (!viewTpls[tplName]) {
 						if (!require.defined(tplName))
-							return cb(new Error("Primary view template should be load prior to view render"))
+							return cb(new Error("Primary view template should be load prior to view render"));
 						viewTpls[tplName] = true;
 					}
 
 					require([tplName], function () {
 						cb(null);
-					},cb)
+					},cb);
 				},
                 context: function(cb) {
                     self.getTplCtx(cb);
@@ -470,8 +487,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 						require.undef(tplName);
 					this.md5 = md5(text);
 					cb(null, text);
-				}))
-            }))
+				}));
+            }));
         },
 
         // renders final view content including wrapper element (!!!)
@@ -517,7 +534,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             this.removeChilds();
             this.stopListening();
             if (this.parent) {
-                this.parent.detachSubView(this)
+                this.parent.detachSubView(this);
             }
             return this;
         },
@@ -525,9 +542,9 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         removeChilds: function() {
             _.each(this.views, function(child) {
                 child.remove();
-            })
+            });
             if (this.views.length)
-                throw new Error("Invalid subview links?")
+                throw new Error("Invalid subview links?");
             return this;
         },
 
@@ -553,7 +570,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                     if ($el.length != 1)
                         throw new Error("Child view '" + child.name + "' can't find its root element");
                     child.setElement($el, options);
-                })
+                });
             }
             return this;
         },
@@ -601,16 +618,21 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         undelegateEvents: function() {
             this.$el.off('.delegateEvents' + this.cid);
             return this;
+        },
+
+        // shorthand to get variable by path from data or locals
+        get: function (k) {
+            return _.get(this.data,k) || _.get(this.locals,k);
         }
 
-    })
+    });
 
     View.extend = extend;
 
     var Application = function(options) {
-        options || (options = {});
+        options  = options || {};
         _.extend(this, _.pick(options, ["prefix"]));
-    }
+    };
 
     _.extend(Application.prototype, Events, {
         getTplCtx: function(cb) {
@@ -772,39 +794,39 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
     };
 
     function resolveUrl( /* ...urls */ ) {
-        var numUrls = arguments.length
+        var numUrls = arguments.length;
 
         if (numUrls === 0) {
-            throw new Error("resolveUrl requires at least one argument; got none.")
+            throw new Error("resolveUrl requires at least one argument; got none.");
         }
 
-        var base = document.createElement("base")
-        base.href = arguments[0]
+        var base = document.createElement("base");
+        base.href = arguments[0];
 
         if (numUrls === 1) {
-            return base.href
+            return base.href;
         }
 
-        var head = document.getElementsByTagName("head")[0]
-        head.insertBefore(base, head.firstChild)
+        var head = document.getElementsByTagName("head")[0];
+        head.insertBefore(base, head.firstChild);
 
-        var a = document.createElement("a")
-        var resolved
+        var a = document.createElement("a");
+        var resolved;
 
         for (var index = 1; index < numUrls; index++) {
-            a.href = arguments[index]
-            resolved = a.href
-            base.href = resolved
+            a.href = arguments[index];
+            resolved = a.href;
+            base.href = resolved;
         }
 
-        head.removeChild(base)
+        head.removeChild(base);
 
-        return resolved
+        return resolved;
     }
 
     var ClientRouter = function(options) {
         var self = this;
-        options || (options = {});
+        options = options || {};
         _.extend(this, _.pick(options, ["prefix"]));
 
         this.routes = {};
@@ -816,7 +838,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 back: true
             }, self.errHandler);
         };
-    }
+    };
 
     _.extend(ClientRouter.prototype, Events, {
         use: function(ware) {
@@ -829,12 +851,12 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             var route = arguments[0];
             var wares = [];
             for (var i = 1; i < arguments.length; i++) {
-                wares.push(arguments[1])
+                wares.push(arguments[1]);
             }
             this.routes[route] = {
                 router: new Router(route, false),
                 wares: wares
-            }
+            };
         },
         mutateTo: function(href) {
             var url = resolveUrl(href);
@@ -848,12 +870,12 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
 			if (_.isFunction(opts)) {
 				cb = opts;
-				opts = {}
+				opts = {};
 			}
 			opts = opts || {};
 
             var url = resolveUrl(href);
-            var prefix = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + this.prefix
+            var prefix = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + this.prefix;
             var uri = url.replace(prefix, "").replace(/\?.*$/, "");
             var match = null;
             var req = {
@@ -865,7 +887,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 originalUrl: url,
                 baseUrl: this.prefix,
                 path: uri
-            }
+            };
             var res = {
                 req: req,
                 locals: {}
@@ -875,8 +897,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 // execute all normal midlewares
                 _.each(self.wares, function(r) {
                     stack.push(function(cb) {
-                        r(req, res, cb)
-                    })
+                        r(req, res, cb);
+                    });
                 });
                 safe.series(stack, safe.sure(cb, function() {
                     // now simulate router midleware
@@ -886,7 +908,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                         if (match) {
                             self.trigger("start", {
                                 route: k
-                            })
+                            });
                             if (opts.replace)
                                 history.replaceState({}, "", url);
                             else if (!opts.back)
@@ -898,26 +920,26 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                             };
                             _.each(p.wares, function(r) {
                                 stack.push(function(cb) {
-                                    r(req, res, cb)
-                                })
+                                    r(req, res, cb);
+                                });
                             });
                             safe.series(stack, cb);
                         }
-                    })
-                }))
+                    });
+                }));
             }, function(err) {
                 if (err) {
                     // finally error handlers
                     stack = [];
                     _.each(self.ewares, function(r) {
                         stack.push(function(cb) {
-                            r(err, req, res, cb)
-                        })
+                            r(err, req, res, cb);
+                        });
                     });
                     if (cb) {
 						stack.push(function(cb) {
-							cb(err)
-						})
+							cb(err);
+						});
 					}
                     safe.series(stack, function () {});
                 } else {
@@ -926,12 +948,12 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                     if (!match)
                         window.location = url;
                 }
-            })
+            });
         }
-    })
+    });
     return {
         View: View,
         Application: Application,
         Router: ClientRouter
-    }
-})
+    };
+});
