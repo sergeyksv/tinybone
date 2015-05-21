@@ -864,7 +864,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             history.pushState({}, "", url);
         },
         reload: function (opts, cb) {
-			this.navigateTo(window.location.pathname, opts, cb);
+			this.navigateTo(window.location.href, opts, cb);
 		},
         navigateTo: function(href, opts, cb) {
             var self = this;
