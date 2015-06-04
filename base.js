@@ -622,8 +622,21 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         // shorthand to get variable by path from data or locals
         get: function (k, def) {
-            if (def===undefined) def = null;
-            return _.get(this.data,k) || _.get(this.locals,k) || (this.parent?this.parent.get(k):null) || def;
+            var v = _.get(this.data,k);
+            if (v !== undefined)
+                return v;
+            v = _.get(this.locals,k);
+            if (v !== undefined)
+                return v;
+
+            if (!this.parent)
+                return def;
+
+            v = this.parent.get(k);
+            if (v !== undefined)
+                return v;
+
+            return def;
         }
 
     });
