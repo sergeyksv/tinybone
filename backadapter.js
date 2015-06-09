@@ -26,7 +26,7 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 		var st = $.cookie("_t_state") || 1;
 
 		var api = function (f, t, p, cb) {
-			p._t_son = p._t_son || config._t_son;			
+			p._t_son = p._t_son || config._t_son;
 			var rpc = f.split(".");
 			p._t_st = st;
 			$.ajax(ctx+t+"/"+rpc[0]+"/"+rpc[1],{
