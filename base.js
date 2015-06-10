@@ -430,7 +430,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         detachSubView: function(view) {
             if (view.parent != this)
-                throw new Errror("View is attached to another parent");
+                throw new Error("View is attached to another parent");
             view.parent = null;
             this.views = _.reject(this.views, function(v) {
                 return v.cid == view.cid;
