@@ -297,6 +297,10 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             // this.$el.prepend("<font style='position:absolute;left:"+this.$el.offset().left+";top:"+this.$el.offset().top+";' color='red'>"+this.name+" "+this.cid+"</font>");
         },
 
+        postTransplant: function() {
+            // this.$el.prepend("<font style='position:absolute;left:"+this.$el.offset().left+";top:"+this.$el.offset().top+";' color='red'>"+this.name+" "+this.cid+"</font>");
+        },
+
         // preRender is function that is called before rendering and can be used
         // to populate this.locals with anything specific to view
         preRender: function() {
@@ -358,7 +362,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         // with view hierarchy. Magic happens when previous (donor)
         // view is available. While binding we can take some parts
         // of donor view as is (avoid redraw or state change)
-        bindDom: function($dom, donor) {
+        bindDom: function($dom, donor, globals) {
             var self = this;
             var mutable = !!donor;
             if (mutable) {
@@ -376,6 +380,20 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                             mutable = false;
                     });
                 }
+                if (!globals) {
+                    globals = [];
+                    var collectGlobals = function (view, globals) {
+                        _.each(view.views, function(view) {
+                            if (view.global)
+                                globals.push(view);
+                            collectGlobals(view,globals);
+                        });
+                    };
+                    collectGlobals(donor,globals);
+                }
+                // if globals available, force mutation
+                if (globals.length)
+                    mutable = true;
             }
 
             if (!mutable) {
@@ -388,30 +406,42 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             } else {
                 // lets try to mutate childs
                 var movedViews = [];
-                _.each(donor.views, function(lview, i) {
-                        var rview = self.views[i];
-                        var $rdom = $dom.find("#" + rview.cid);
-                        // equaity of data that views are build upon ies a sign
-                        // that view is not need to be recreated
-                        if (lview.md5 == rview.md5 && _.isEqual(lview.data, rview.data)) {
-                            // move dom subnodes
-                            $rdom.replaceWith(lview.$el);
-                                // detach lview
-                            movedViews.push({
-                                view: lview,
-                                parent: rview.parent
-                            });
-                            // implant into right
-                            lview.data = rview.data;
-                            self.views[i] = lview;
-                        } else {
-                            rview.bindDom($rdom, lview);
-                        }
-                    });
-                    // remove transplanted views from tree
+                _.each(self.views, function(rview, i) {
+                    // if we have any globals get one that match by name
+                    var lview = _.find(globals, function (g) { return g.name == rview.name;});
+
+                    if (lview) {
+                        // if any global found remove it from glolbal (will transplanation once)
+                        globals = _.reject(globals,  function (g) { return g.name == rview.name;});
+                    } else
+                        // overwise strict case (same page)
+                        lview = donor.views[i];
+
+                    var $rdom = $dom.find("#" + rview.cid);
+                    // equaity of data that views are build upon ies a sign
+                    // that view is not need to be recreated
+                    if (lview.name == rview.name && lview.md5 == rview.md5 && _.isEqual(lview.data, rview.data)) {
+                        // move dom subnodes
+                        $rdom.replaceWith(lview.$el);
+                        // detach lview
+                        movedViews.push({
+                            view: lview,
+                            parent: rview.parent
+                        });
+                        // implant into right
+                        lview.data = rview.data;
+                        self.views[i] = lview;
+                    } else {
+                        rview.bindDom($rdom, lview, globals);
+                    }
+                });
+                // remove transplanted views from tree
                 _.each(movedViews, function(mv) {
                     donor.detachSubView(mv.view);
                     mv.view.parent = mv.parent;
+                    setTimeout(function() {
+                        mv.view.postTransplant();
+                    },0);
                 });
                 self.setElement($dom, {
                     delegate: true,
