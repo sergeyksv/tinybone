@@ -270,6 +270,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         this.cid = _.uniqueId('v');
         this.name = this.constructor.id;
         this.locals = {};
+        this.states = {};
         options || (options = {});
         _.extend(this, _.pick(options, viewOptions));
     }
@@ -299,6 +300,10 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
         postTransplant: function() {
             // this.$el.prepend("<font style='position:absolute;left:"+this.$el.offset().left+";top:"+this.$el.offset().top+";' color='red'>"+this.name+" "+this.cid+"</font>");
+        },
+
+        postAlive: function () {
+
         },
 
         // preRender is function that is called before rendering and can be used
@@ -344,7 +349,17 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                             });
                             view.bindWire(wireView, self, ctx, cb);
                         }, cb);
-                    }, cb);
+                    }, safe.sure(cb, function () {
+                        if (parent==self) {
+                            var postAlive = function (view) {
+                                _.each(view.views, function (view) {
+                                    view.postAlive();
+                                });
+                            };
+                            postAlive(self);
+                        }
+                        cb();
+                    }));
                 }));
             }));
         },
@@ -420,7 +435,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                     var $rdom = $dom.find("#" + rview.cid);
                     // equaity of data that views are build upon ies a sign
                     // that view is not need to be recreated
-                    if (lview.name == rview.name && lview.md5 == rview.md5 && _.isEqual(lview.data, rview.data)) {
+                    if (lview && lview.name == rview.name && lview.md5 == rview.md5 && _.isEqual(lview.data, rview.data)) {
                         // move dom subnodes
                         $rdom.replaceWith(lview.$el);
                         // detach lview
@@ -456,6 +471,18 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 throw new Error("View already has parent");
             view.parent = this;
             this.views.push(view);
+
+            if (view.el) {
+                // when we attach view that is already linked with dom
+                // lets notify it that it is post alive
+                var postAlive = function (view) {
+                    _.each(view.views, function (view) {
+                        view.postAlive();
+                    });
+                };
+                view.postAlive();
+                postAlive(view);
+            }
         },
 
         detachSubView: function(view) {
@@ -667,6 +694,44 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                 return v;
 
             return def;
+        },
+
+        setState: function (state, value) {
+            this.states[state]=value;
+            this.trigger("state:"+state, value);
+        },
+
+        stateEvent: function (state) {
+            var self = this;
+            var value = this.states[state];
+            if (_.has(this.states,state)) {
+                var event = _.uniqueId("vs");
+                setTimeout(function () {
+                    self.trigger(event, value);
+                },0);
+                return event;
+            } else {
+                return "state:"+state;
+            }
+        },
+
+        getViewByName: function (name, opts) {
+            if (this.parent)
+                return this.parent.getViewByName(name,opts);
+
+            var views = [];
+            if (this.name == name)
+                views.push(this);
+            var collectViews = function (view, views) {
+                _.each(view.views, function(view) {
+                    if (view.name == name)
+                        views.push(view);
+                    collectViews(view,views);
+                });
+            };
+            collectViews(this, views);
+
+            return views.length==1?views[0]:null;
         }
 
     });
@@ -910,6 +975,9 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			this.navigateTo(window.location.href, opts, cb);
 		},
         navigateTo: function(href, opts, cb) {
+            if (!history.pushState)
+                window.location.href = href;
+
             var self = this;
 
 			if (_.isFunction(opts)) {
@@ -919,6 +987,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			opts = opts || {};
 
             var url = resolveUrl(href);
+
             var prefix = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + this.prefix;
             var uri = url.replace(prefix, "").replace(/\?.*$/, "");
             var match = null;
