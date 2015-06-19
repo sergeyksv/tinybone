@@ -21,25 +21,26 @@ function(module, text, dust) {
 					}
 
 					// trace view helper dependencies (sub views)
-					var xtra = [];
+					var xtra = [],i,view,tpl1;
 					var match = tpl.match(/@view\s+name=\"([^\"]+)\"/g);
 					if (match) {
-						match.forEach(function (view) {
-							var tpl = view.match(/@view\s+name=\"([^\"]+)\"/)[1];
-							xtra.push(tpl);
-						})
+						for (i=0; i<match.length; i++) {
+                            view = match[i];
+							tpl1 = view.match(/@view\s+name=\"([^\"]+)\"/)[1];
+							xtra.push(tpl1);
+						}
 					}
 					req(xtra, function () {
 						onload(path);
 					},function (e) {
-						onload.error(e)
-					})
+						onload.error(e);
+					});
 				} catch (e) {
-					onload.error(e)
+					onload.error(e);
 				}
 			}, function (err) {
 				if (err)
-					onload.error(err)
+					onload.error(err);
 			});
 		},
 		write: function(plugin, name, write) {
