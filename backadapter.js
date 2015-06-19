@@ -38,8 +38,8 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 						data = tson.decode(data);
 					cb(null, data);
 				},
-				error: function (xhr) {
-					cb(new CustomError(xhr.responseJSON.message,xhr.responseJSON.subject));
+				error: function (xhr, textStatus, errorThrown) {
+					cb(new CustomError(xhr.responseJSON?xhr.responseJSON.message:errorThrown,xhr.responseJSON?xhr.responseJSON.subject:textStatus));
 				}
 			});
 		};
