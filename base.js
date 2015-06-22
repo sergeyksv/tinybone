@@ -552,7 +552,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
         render: function(cb) {
             var self = this;
             this.renderHtml(safe.sure(cb, function(text) {
-                cb(null, "<div id='" + self.cid + "'>" + text + "</div>");
+                cb(null, "<" + self.tagName + "id='" + self.cid + "'>" + text + "</" + self.tagName + ">");
             }));
         },
 
