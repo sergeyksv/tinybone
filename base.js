@@ -399,7 +399,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
                     globals = [];
                     var collectGlobals = function (view, globals) {
                         _.each(view.views, function(view) {
-                            if (view.global)
+                            if (view._t_option_global)
                                 globals.push(view);
                             collectGlobals(view,globals);
                         });
@@ -548,11 +548,15 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
             }));
         },
 
-        // renders final view content including wrapper element (!!!)
+        // renders final view content (!!!)
         render: function(cb) {
             var self = this;
             this.renderHtml(safe.sure(cb, function(text) {
-                cb(null, "<div id='" + self.cid + "'>" + text + "</div>");
+                if (self._t_option_nowrap){
+                    cb(null, text);
+                }else{
+                    cb(null, "<" + self.tagName + " id='" + self.cid + "'>" + text + "</" + self.tagName +">");
+                }
             }));
         },
 
