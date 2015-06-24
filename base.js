@@ -269,7 +269,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 		this.app = options.app;
 		this.parent = null;
 		this.views = [];
-		this.cid = _.uniqueId('v');
+		this.cid = _.uniqueId('_t_view_');
 		this.name = this.constructor.id;
 		this.locals = {};
 		this.states = {};
@@ -338,6 +338,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 				$el.attr('id', this.cid);
 				this.locals = wire.locals;
 				this.data = _.isString(wire.data) ? (wire.data == "." ? ctx.get([], true) : ctx.get(wire.data)) : wire.data;
+				this.md5 = wire.md5;
 				this.setElement($el);
 			}
 
@@ -548,7 +549,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					// in debug mode undefine templat so it will be reloaded each time
 					if (debug)
 						require.undef(tplName);
-					self.md5 = md5(text);
+					self.md5 = md5(text.replace(/id=['\"]_t_view_\d+['\"]/,""));
 					safe.back(cb, null, text);
 				}));
 			}));
@@ -759,7 +760,6 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 	getQueryStringKey = function(key) {
 		return getQueryStringAsObject()[key];
 	};
-
 
 	getQueryStringAsObject = function(q) {
 		var b, cv, e, k, ma, sk, v, r = {},
