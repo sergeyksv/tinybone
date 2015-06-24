@@ -548,7 +548,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					// in debug mode undefine templat so it will be reloaded each time
 					if (debug)
 						require.undef(tplName);
-					this.md5 = md5(text);
+					self.md5 = md5(text);
 					safe.back(cb, null, text);
 				}));
 			}));
@@ -942,10 +942,9 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 		this.routes = {};
 		this.wares = [];
 		this.ewares = [];
-        this.counter = 0;
+		this.counter = 0;
 
 		window.onpopstate = function(event) {
-            console.log(event);
 			self.navigateTo(document.location.href, {
 				back: true
 			}, self.errHandler);
@@ -971,20 +970,21 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			};
 		},
 		reload: function (opts, cb) {
-            if (_.isFunction(opts)) {
+			if (_.isFunction(opts)) {
 				cb = opts;
 				opts = {};
 			}
+			opts = opts || {};
 			this.navigateTo(window.location.href, _.defaults(opts,{replace:true}), cb);
 		},
 		navigateTo: function(href, opts, cb) {
-            var self = this;
+			var self = this;
 
-            // no history pushState, not client router
+			// no history pushState, not client router
 			if (!history.pushState)
 				window.location.href = href;
 
-            // resolve options and target url
+			// resolve options and target url
 			if (_.isFunction(opts)) {
 				cb = opts;
 				opts = {};
@@ -992,13 +992,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			opts = opts || {};
 			var url = resolveUrl(href);
 
-            // apply change to url right away
-            if (opts.replace)
-                history.replaceState({}, "", url);
-            else if (!opts.back)
-                history.pushState({}, "", url);
-
-            // collect client simulated req and res and all other part
+			// collect client simulated req and res and all other part
 			var prefix = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + this.prefix;
 			var uri = url.replace(prefix, "").replace(/\?.*$/, "");
 			var match = null;
@@ -1017,7 +1011,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 				locals: {}
 			};
 
-            // do express alike but client side routing
+			// do express alike but client side routing
 			var stack = [];
 			safe.run(function(cb) {
 				// execute all normal midlewares
@@ -1032,6 +1026,11 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 						if (match) return;
 						match = p.router.match(uri);
 						if (match) {
+							if (opts.replace)
+								history.replaceState({}, "", url);
+							else if (!opts.back)
+								history.pushState({}, "", url);
+
 							self.trigger("start", {
 								route: k
 							});
@@ -1052,6 +1051,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 							safe.series(stack, cb);
 						}
 					});
+					if (!match)
+						cb();
 				}));
 			}, function(err) {
 				if (err) {
