@@ -963,7 +963,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			var route = arguments[0];
 			var wares = [];
 			for (var i = 1; i < arguments.length; i++) {
-				wares.push(arguments[1]);
+				wares.push(arguments[i]);
 			}
 			this.routes[route] = {
 				router: new Router(route, false),
