@@ -768,7 +768,6 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			}, //# d(ecode) the v(alue)
 			s = /([^&;=]+)=?([^&;]*)/g //# original regex that does not allow for ; as a delimiter:   /([^&=]+)=?([^&]*)/g
 		;
-		q = q || window.location.search.substring(1),
 
 		//# ma(make array) out of the v(alue)
 		ma = function(v) {
