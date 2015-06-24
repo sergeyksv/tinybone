@@ -1003,7 +1003,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			var uri = url.replace(prefix, "").replace(/\?.*$/, "");
 			var match = null;
 			var req = {
-				query: getQueryStringAsObject(href.replace(/.*\?/,"")),
+				query: getQueryStringAsObject(href.replace(/.*\?|.*/,"")),
 				cookies: $.cookie(),
 				headers: {
 					'user-agent': navigator.userAgent
