@@ -1026,7 +1026,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 
 			// do not use router if no matches will be found (not our url)
 			if (!routes.length) {
-				window.location = url;
+				if (window.location != url)
+					window.location = url;
 				cb();
 				return;
 			}
@@ -1075,7 +1076,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					nextDone();
 				else if (ei < self.ewares.length) {
 					req.next = nextError;
-					self.wares[ei++](err,req,res,nextError);
+					self.ewares[ei++](err,req,res,nextError);
 				} else
 					nextDone();
 			};
