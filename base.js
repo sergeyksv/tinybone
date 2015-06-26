@@ -989,6 +989,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 				opts = {};
 			}
 			opts = opts || {};
+			cb = cb || function () {};
 			var url = resolveUrl(href);
 
 			// collect client simulated req and res and all other part
@@ -1003,7 +1004,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 				},
 				originalUrl: url,
 				baseUrl: this.prefix,
-				path: uri
+				path: uri,
+				_t_start: new Date()
 			};
 			var res = {
 				req: req,
@@ -1011,85 +1013,81 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			};
 
 			// do express alike but client side routing
-			var stack = [];
-			safe.run(function(cb) {
-				// execute all normal midlewares
-				_.each(self.wares, function(r) {
-					stack.push(function(cb) {
-						r(req, res, cb);
-					});
-				});
-				safe.series(stack, safe.sure(cb, function() {
-					// now simulate router midleware
-					_.each(self.routes, function(p, k) {
-						if (match) return;
-						match = p.router.match(uri);
-						if (match) {
-							if (opts.replace)
-								history.replaceState({}, "", url);
-							else if (!opts.back)
-								history.pushState({}, "", url);
 
-							self.trigger("start", {
-								route: k
-							});
-							stack = [];
-							req.params = match;
-							req.route = {
-								path: k
-							};
-							_.each(p.wares, function(r) {
-								stack.push(function(cb) {
-									req.next = cb;
-									r(req, res, function (err) {
-										req.next = null;
-										cb(err);
-									});
-								});
-							});
-							safe.series(stack, cb);
-						}
-					});
-					if (!match)
-						cb();
-				}));
-			}, function(err) {
-				if (err) {
-					// finally error handlers
-					stack = [];
-					_.each(self.ewares, function(r) {
-						stack.push(function(cb) {
-							req.next = function (err) {
-								// if error passed mobe it further
-								// through error handlers
-								if (err)
-									cb(null);
-								else
-									// overwise terminate with special error code
-									cb(new Error("RouterDone"));
-							};
-							r(err, req, res, function (err) {
-								var cb = req.next;
-								req.next = null;
-								cb(err);
-							});
-						});
-					});
-					safe.series(stack, function (err) {
-						if (err.message == "RouterDone")
-							err=null;
-						if (cb)
-							cb(err);
-					});
-				} else {
-					// if no match found just do normal
-					// client navigation
-					if (!match)
-						window.location = url;
-					else if (cb)
-						safe.back(cb,null);
+			// collection all matched routes
+			var routes = [];
+			_.each(self.routes, function(p, k) {
+				var match = p.router.match(uri);
+				if (match) {
+					routes.push({wares:p.wares, req:{params:match,route:{path:k}}});
 				}
 			});
+
+			// do not use router if no matches will be found (not our url)
+			if (!routes.length) {
+				window.location = url;
+				cb();
+				return;
+			}
+
+			// navigation start
+			self.trigger("start", {
+				route: routes[0].req.route.path
+			});
+
+			// change url
+			if (opts.replace)
+				history.replaceState({}, "", url);
+			else if (!opts.back)
+				history.pushState({}, "", url);
+
+			// do route
+			var wi = 0, ri = 0, rwi=0, ei=0;
+
+			var nextWare = function (err) {
+				var r = routes[ri];
+				if (rwi<r.wares.length && !err) {
+					r.wares[rwi++](req, res, nextWare);
+				} else if (!err || err=='route') {
+					ri++; nextRoute();
+				} else nextError(err);
+			};
+
+			var nextRoute = function (err) {
+				if (err)
+					nextError(err);
+				else if (wi < self.wares.length) {
+					req.next = nextRoute;
+					self.wares[wi++](req,res,nextRoute);
+				} else if (ri < routes.length) {
+					r = routes[ri];
+					req.next = nextWare;
+					req.params = r.req.params;
+					req.route = r.req.route;
+					rwi = 0;
+					nextWare();
+				} else nextDone();
+			};
+
+			var nextError = function (err) {
+				if (!err)
+					nextDone();
+				else if (ei < self.ewares.length) {
+					req.next = nextError;
+					self.wares[ei++](err,req,res,nextError);
+				} else
+					nextDone();
+			};
+
+			var nextDone = function (err) {
+				if (err)
+					nextError(err);
+				else
+					cb();
+			};
+
+			req._t_done = nextDone;
+			nextRoute();
 		}
 	});
 	return {
