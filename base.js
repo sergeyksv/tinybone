@@ -1009,7 +1009,8 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 			};
 			var res = {
 				req: req,
-				locals: {}
+				locals: {},
+				cookie: $.cookie
 			};
 
 			// do express alike but client side routing
