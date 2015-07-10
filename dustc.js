@@ -10,14 +10,18 @@ function(module, text, dust) {
 		load: function(name, req, onload, config) {
 			var extension = name.substring(name.lastIndexOf('.'));
 			var path = name.slice(0, -(extension.length));
-
+			var p = path;
+			
+			if(!!config.context)
+				p = config.context + ':' + p;
+			
 			text.get(req.toUrl(name), function(tpl) {
 				try {
 					if (config.isBuild) {
 						// write out the module definition for builds
-						buildMap[name] = ['define(["dust"],function(dust){dust.loadSource((function () { return ', dust.compile(tpl, path), '})()); return "', path, '";});'].join('');
+						buildMap[name] = ['define(["dust"],function(dust){dust.loadSource((function () { return ', dust.compile(tpl, p), '})()); return "', path, '";});'].join('');
 					} else {
-						dust.loadSource(dust.compile(tpl, path));
+						dust.loadSource(dust.compile(tpl, p));
 					}
 
 					// trace view helper dependencies (sub views)

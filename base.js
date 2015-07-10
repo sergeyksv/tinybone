@@ -545,7 +545,10 @@ define(['require', 'module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-
 					self.getTplCtx(cb);
 				}
 			}, safe.sure(cb, function(res) {
-				dust.render(self.id, res.context, safe.sure(cb, function (text) {
+				var tplid = self.id;
+				if(!!self.rctx)
+					tplid = self.rctx + ':' + tplid;
+				dust.render(tplid, res.context, safe.sure(cb, function (text) {
 					// in debug mode undefine templat so it will be reloaded each time
 					if (debug)
 						require.undef(tplName);
