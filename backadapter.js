@@ -7,6 +7,14 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 		this.message = message;
 		this.subject = subject;
 	}
+	
+	function ValidationError(message, subject, data) {
+		this.constructor.prototype.__proto__ = Error.prototype;
+		this.name = 'ValidationError';
+		this.message = message;
+		this.subject = subject;
+		this.data = data;
+	}
 
 	if (typeof window == 'undefined') {
 		return function (f, t, p, cb) {
@@ -39,7 +47,15 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 					cb(null, data);
 				},
 				error: function (xhr, textStatus, errorThrown) {
-					cb(new CustomError(xhr.responseJSON?xhr.responseJSON.message:errorThrown,xhr.responseJSON?xhr.responseJSON.subject:textStatus));
+					var err;
+					
+					if(xhr.status === 422) {
+						err = new (Function.prototype.bind.apply(ValidationError, [null].concat(_.values(_.pick(xhr.responseJSON, ['message', 'subject', 'data'])))));
+					} else {
+						err = new CustomError(xhr.responseJSON?xhr.responseJSON.message:errorThrown,xhr.responseJSON?xhr.responseJSON.subject:textStatus);
+					}
+					
+					cb(err);
 				}
 			});
 		};
