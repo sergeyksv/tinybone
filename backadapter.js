@@ -23,7 +23,7 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 			ctx.api[rpc[0]][rpc[1]](t.valueOf(),p,function (err, data){
 				if (err)
 					return cb(err);
-				if (config.debug && (config._t_son || p._t_son))  {
+				if (config.debug && (config._t_son || p._t_son) && !!data)  {
 					// simulate wire
 					cb(null,tson.decode(JSON.parse(JSON.stringify(tson.encode(data)))));
 				} else
