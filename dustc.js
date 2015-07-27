@@ -12,15 +12,17 @@ function(module, text, dust) {
 			var path = name.slice(0, -(extension.length));
 			var p = path;
 			
-			if(!!config.context)
-				p = config.context + ':' + p;
-			
 			text.get(req.toUrl(name), function(tpl) {
 				try {
 					if (config.isBuild) {
+						if(!!config.config && !!config.config.ctx)
+							p = config.config.ctx + ':' + p;
+						
 						// write out the module definition for builds
 						buildMap[name] = ['define(["dust"],function(dust){dust.loadSource((function () { return ', dust.compile(tpl, p), '})()); return "', path, '";});'].join('');
 					} else {
+						if(!!config.context)
+							p = config.context + ':' + p;
 						dust.loadSource(dust.compile(tpl, p));
 					}
 
