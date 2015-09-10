@@ -556,6 +556,10 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 		},
 
 		// completely refresh current view
+		// NOTE!! Creates new view on same data and replaces refreshed one in
+		// view hierarchy. Returns new view on success. When called within refreshed view itself
+		// it is not safe to continue any operation on it after that. If continuatin is required
+		// control should be passed to new view.
 		refresh: function(cb) {
 			var self = this;
 			require([this.constructor.id], function (View) {
@@ -574,7 +578,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 					self.$el.before($dom);
 					newView.bindDom($dom, self);
 					self.remove();
-					cb();
+					cb(null,newView);
 				});
 
 			},cb);
