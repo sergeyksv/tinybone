@@ -1,7 +1,8 @@
 define([
         'module',
         'text',
-        'dust'
+        'dust.core',
+        'dust.compile'
     ],
 function(module, text, dust) {
 	var buildMap = {};
@@ -10,20 +11,13 @@ function(module, text, dust) {
 		load: function(name, req, onload, config) {
 			var extension = name.substring(name.lastIndexOf('.'));
 			var path = name.slice(0, -(extension.length));
-			var p = path;
-			
 			text.get(req.toUrl(name), function(tpl) {
 				try {
 					if (config.isBuild) {
-						if(!!config.config && !!config.config.ctx)
-							p = config.config.ctx + ':' + p;
-						
 						// write out the module definition for builds
-						buildMap[name] = ['define(["dust"],function(dust){dust.loadSource((function () { return ', dust.compile(tpl, p), '})()); return "', path, '";});'].join('');
+						buildMap[name] = ['define(["dust.core"],function(dust){dust.loadSource((function () { return ', dust.compile(tpl, path), '})()); return "', path, '";});'].join('');
 					} else {
-						if(!!config.context)
-							p = config.context + ':' + p;
-						dust.loadSource(dust.compile(tpl, p));
+						dust.loadSource(dust.compile(tpl, path));
 					}
 
 					// trace view helper dependencies (sub views)

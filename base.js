@@ -1,4 +1,4 @@
-define(['require', 'module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(requirejs, module, safe, _, dust, md5) {
+define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jquery-cookie'], function(requirejs, module, safe, _, dust, md5) {
 	var array = [];
 	var push = array.push;
 	var slice = array.slice;
@@ -16,7 +16,7 @@ define(['require', 'module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-
 			var ecb = function (err) {
 				chunk.setError(err);
 			};
-			require.s.contexts[params.rctx || '_'].require([params.name], safe.trap(ecb, function(View) {
+			requirejs([params.name], safe.trap(ecb, function(View) {
 				var view = new View({
 					app: context.get('_t_app')
 				});
@@ -545,10 +545,7 @@ define(['require', 'module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-
 					self.getTplCtx(cb);
 				}
 			}, safe.sure(cb, function(res) {
-				var tplid = self.id;
-				if(!!self.rctx)
-					tplid = self.rctx + ':' + tplid;
-				dust.render(tplid, res.context, safe.sure(cb, function (text) {
+				dust.render(self.id, res.context, safe.sure(cb, function (text) {
 					// in debug mode undefine templat so it will be reloaded each time
 					if (debug)
 						require.undef(tplName);
