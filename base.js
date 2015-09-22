@@ -1,4 +1,4 @@
-define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], function(module, safe, _, dust, md5) {
+define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jquery-cookie'], function(requirejs, module, safe, _, dust, md5) {
 	var array = [];
 	var push = array.push;
 	var slice = array.slice;
@@ -532,12 +532,12 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 				template: function (cb) {
 					// check for proper use
 					if (!viewTpls[tplName]) {
-						if (!require.defined(tplName))
+						if (!requirejs.defined(tplName))
 							return cb(new Error("Primary view template ''"+tplName+"'' should be load prior to view render"));
 						viewTpls[tplName] = true;
 					}
 
-					require([tplName], function () {
+					requirejs([tplName], function () {
 						cb(null);
 					},cb);
 				},
@@ -562,7 +562,7 @@ define(['module', 'safe', 'lodash', 'dust', 'md5', 'jquery', 'jquery-cookie'], f
 		// control should be passed to new view.
 		refresh: function(cb) {
 			var self = this;
-			require([this.constructor.id], function (View) {
+			requirejs([this.constructor.id], function (View) {
 				// create clone of this view with same data
 				var newView = new View(new View({app:self.app}));
 				newView.data = self.data;
