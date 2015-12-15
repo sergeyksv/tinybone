@@ -1,4 +1,4 @@
-define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jquery-cookie'], function(requirejs, module, safe, _, dust, md5) {
+define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jquery-cookie'], function(requirejs, module, safe, _, dust, md5, $) {
 	var array = [];
 	var push = array.push;
 	var slice = array.slice;
@@ -947,11 +947,11 @@ define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jq
 		this.ewares = [];
 		this.counter = 0;
 
-		window.onpopstate = function(event) {
+		$(window).on("popstate", function(event) {
 			self.navigateTo(document.location.href, {
 				back: true
 			}, self.errHandler);
-		};
+		});
 	};
 
 	_.extend(ClientRouter.prototype, Events, {
@@ -1046,7 +1046,6 @@ define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jq
 				history.replaceState({}, "", url);
 			else if (!opts.back)
 				history.pushState({}, "", url);
-
 			// do route
 			var wi = 0, ri = 0, rwi=0, ei=0;
 
