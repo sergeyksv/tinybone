@@ -17,7 +17,7 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 	}
 
 	if (typeof window == 'undefined') {
-		return function (f, t, p, cb) {
+		var api = function (f, t, p, cb) {
 			p._t_son = p._t_son || config._t_son;
 			var rpc = f.split(".");
 			ctx.api[rpc[0]][rpc[1]](t.valueOf(),p,function (err, data){
@@ -30,6 +30,9 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 					cb(null,data);
 			});
 		};
+		// invalidate is dummy on server (does nothing)
+		api.invalidate = function () {};
+		return api;
 	} else {
 		var st = $.cookie("_t_state") || 1;
 
