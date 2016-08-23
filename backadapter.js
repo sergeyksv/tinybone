@@ -1,4 +1,4 @@
-define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx,tson,$) {
+define(["module","backctx",'tson','lodash','jquery','jquery-cookie'],function (module,ctx,tson,_,$) {
 	var config = (module.config && module.config()) || {};
 
 	function CustomError (message, subject) {
@@ -39,8 +39,7 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 			p._t_st = st;
 			$.ajax(ctx+t+"/"+rpc[0]+"/"+rpc[1],{
 				type: (rpc[1].search(/(^get)/) == -1)?"POST":"GET",
-				dataType: "json",
-				data:(p._t_son == 'in' || p._t_son == 'both' )?tson.encode(p,true):p,
+				data:{_t_jsonq:JSON.stringify((p._t_son == 'in' || p._t_son == 'both' )?tson.encode(p,true):p)},
 				success:function (data) {
 					if (p._t_son == 'out' || p._t_son == 'both' )
 						data = tson.decode(data);
