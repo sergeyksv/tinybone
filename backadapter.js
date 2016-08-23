@@ -39,6 +39,7 @@ define(["module","backctx",'tson','lodash','jquery','jquery-cookie'],function (m
 			p._t_st = st;
 			$.ajax(ctx+t+"/"+rpc[0]+"/"+rpc[1],{
 				type: (rpc[1].search(/(^get)/) == -1)?"POST":"GET",
+				dataType: "json",
 				data:{_t_jsonq:JSON.stringify((p._t_son == 'in' || p._t_son == 'both' )?tson.encode(p,true):p)},
 				success:function (data) {
 					if (p._t_son == 'out' || p._t_son == 'both' )
