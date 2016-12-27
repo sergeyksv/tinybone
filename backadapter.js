@@ -17,7 +17,10 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 	}
 
 	if (typeof window == 'undefined') {
-		return function (f, t, p, cb) {
+		var api = function (f, t, p, o, cb) {
+			if (!cb) {
+				cb = o; o={};
+			}
 			p._t_son = p._t_son || config._t_son;
 			var rpc = f.split(".");
 			ctx.api[rpc[0]][rpc[1]](t.valueOf(),p,function (err, data){
@@ -30,17 +33,25 @@ define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx
 					cb(null,data);
 			});
 		};
+		// invalidate is dummy on server (does nothing)
+		api.invalidate = function () {};
+		return api;
 	} else {
 		var st = $.cookie("_t_state") || 1;
 
-		var api = function (f, t, p, cb) {
+		var api = function (f, t, p, o, cb) {
+			if (!cb) {
+				cb = o; o={};
+			}
 			p._t_son = p._t_son || config._t_son;
+			var _t_jsonq = !!(config._t_jsonq || o._t_jsonq || true);
 			var rpc = f.split(".");
 			p._t_st = st;
+			var data = (p._t_son == 'in' || p._t_son == 'both' )?tson.encode(p,true):p;
 			$.ajax(ctx+t+"/"+rpc[0]+"/"+rpc[1],{
 				type: (rpc[1].search(/(^get)/) == -1)?"POST":"GET",
 				dataType: "json",
-				data:(p._t_son == 'in' || p._t_son == 'both' )?tson.encode(p,true):p,
+				data:_t_jsonq?{_t_jsonq:JSON.stringify(data)}:data,
 				success:function (data) {
 					if (p._t_son == 'out' || p._t_son == 'both' )
 						data = tson.decode(data);

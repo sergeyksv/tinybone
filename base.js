@@ -774,13 +774,17 @@ define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jq
 		;
 
 		//# ma(make array) out of the v(alue)
-		ma = function(v) {
+		ma = function(v,forceArray) {
 			//# If the passed v(alue) hasn't been setup as an object
 			if (typeof v != "object") {
 				//# Grab the cv(current value) then setup the v(alue) as an object
 				cv = v;
-				v = {};
-				v.length = 0;
+				if (forceArray) {
+					v = [];
+				} else {
+					v = {};
+					v.length = 0;
+				}
 
 				//# If there was a cv(current value), .push it into the new v(alue)'s array
 				//#     NOTE: This may or may not be 100% logical to do... but it's better than loosing the original value
@@ -805,7 +809,7 @@ define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jq
 				//# If the k(ey) already exists
 				if (r[k]) {
 					//# ma(make array) out of the k(ey) then .push the v(alue) into the k(ey)'s array in the r(eturn value)
-					r[k] = ma(r[k]);
+					r[k] = ma(r[k],true);
 					Array.prototype.push.call(r[k], v);
 				}
 				//# Else this is a new k(ey), so just add the k(ey)/v(alue) into the r(eturn value)
