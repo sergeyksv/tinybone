@@ -1002,7 +1002,7 @@ define(['require', 'module', 'safe', 'lodash', 'dust.core', 'md5', 'jquery', 'jq
 
 			// collect client simulated req and res and all other part
 			var prefix = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + this.prefix;
-			var uri = url.replace(prefix, "").replace(/\?.*$/, "");
+			var uri = url.replace(prefix, "").replace(/\?.*$/, "").split("#")[0];
 			var match = null;
 			var req = {
 				query: getQueryStringAsObject(href.replace(/.*\?|.*/,"")),

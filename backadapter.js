@@ -1,4 +1,4 @@
-define(["module","backctx",'tson','jquery','jquery-cookie'],function (module,ctx,tson,$) {
+define(["module","backctx",'tson','lodash','jquery','jquery-cookie'],function (module,ctx,tson,_,$) {
 	var config = (module.config && module.config()) || {};
 
 	function CustomError (message, subject) {
