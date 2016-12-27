@@ -40,6 +40,10 @@ but changes some parts in radical way in order to better suite project needs.
 * TinyBone is only View layer and client Router. It doesn't enforce data models,
 backend type and structure etc.
 
+For example application please please see:
+* https://github.com/sergeyksv/tinyapp-bootstrap
+* https://github.com/sergeyksv/tinelic
+
 ## Application
 
 Application is base class/object that any final application should subclass.
